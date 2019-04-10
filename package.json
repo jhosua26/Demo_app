@@ -1,0 +1,24 @@
+{
+  "name": "demo_app",
+  "version": "1.0.0",
+  "description": "this is demo using rethinkdb and nodejs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhosua26/Demo_app.git"
+  },
+  "author": "jhosua",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jhosua26/Demo_app/issues"
+  },
+  "homepage": "https://github.com/jhosua26/Demo_app#readme",
+  "dependencies": {
+    "restify": "^8.2.0",
+    "restify-errors": "^7.0.0",
+    "restify-plugins": "^1.6.0"
+  }
+}
