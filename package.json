@@ -1,0 +1,27 @@
+{
+  "name": "demo_app",
+  "version": "1.0.0",
+  "description": "this is my chat app using rethinkdb, restify and nodejs",
+  "main": "server.js",
+  "dependencies": {
+    "restify": "^8.3.0",
+    "restify-errors": "^7.0.0",
+    "restify-plugins": "^1.6.0",
+    "restify-router": "^0.5.1",
+    "rethinkdb": "^2.3.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhosua26/Demo_app.git"
+  },
+  "author": "jhosua",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jhosua26/Demo_app/issues"
+  },
+  "homepage": "https://github.com/jhosua26/Demo_app#readme"
+}
