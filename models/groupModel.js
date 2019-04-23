@@ -2,6 +2,11 @@ var model = module.exports;
 let r = require('rethinkdb');
 let config = require('../config');
 
+/**
+ * Insert Groups
+ * @param {group document} group 
+ * @param {response & error} callback 
+ */
 model.saveGroup = (group, callback) => {
     r.connect(config.rethinkdb).then((conn) => {
         r.table('groups').insert(group).run(conn).then((results) => {
@@ -14,6 +19,10 @@ model.saveGroup = (group, callback) => {
     });
 }
 
+/**
+ * Get All Groups
+ * @param {response, error} callback 
+ */
 model.getGroups = (callback) => {
     r.connect(config.rethinkdb).then((conn) => {
         r.table('groups').run(conn).then((cursor) => {
@@ -31,6 +40,11 @@ model.getGroups = (callback) => {
     })
 }
 
+/**
+ * Get Group by ID
+ * @param {ID of the group} id 
+ * @param {response, error} callback 
+ */
 model.getGroup = (id, callback) => {
     r.connect(config.rethinkdb).then((conn) => {
         r.table('groups').get(id).run(conn).then((cursor) => {
@@ -42,6 +56,12 @@ model.getGroup = (id, callback) => {
     })
 }
 
+/**
+ * Update Group by ID
+ * @param {group document} group 
+ * @param {ID of the group} id 
+ * @param {response, error} callback 
+ */
 model.updateGroup = (group, id, callback) => {
     r.connect(config.rethinkdb).then((conn) => {
         r.table('groups').get(id).update(group).run(conn).then((result) => {
@@ -54,6 +74,11 @@ model.updateGroup = (group, id, callback) => {
     })
 }
 
+/**
+ * Delete Group by ID
+ * @param {ID of the group} id 
+ * @param {response, error} callback 
+ */
 model.deleteGroup = (id, callback) => {
     r.connect(config.rethinkdb).then((conn) => {
         r.table('groups').get(id).delete().run(conn).then((result) => {

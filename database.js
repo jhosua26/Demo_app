@@ -1,10 +1,15 @@
-var db = module.exports;
-let r = require('rethinkdb');
+/**
+ * Module Dependencies
+ */
 let config = require('./config');
+const errors = require('restify-errors');
+let r = require('rethinkdb');
 
-let users = 'users';
+let db = module.exports;
 let groups = 'groups';
+let messages = 'messages';
 let userGroups = 'userGroups';
+let users = 'users';
 
 db.setup = () => {
     console.log('setting up rethinkdb')
@@ -24,7 +29,7 @@ db.setup = () => {
                 r.tableCreate(users).run(conn)
             })
             .error(error => {
-                throw error
+                throw new errors.InternalServerError(error)
             })
 
             r.table(groups).limit(1).run(conn)
@@ -34,7 +39,7 @@ db.setup = () => {
                 r.tableCreate(groups).run(conn)
             })
             .error(error => {
-                throw error
+                throw new errors.InternalServerError(error)
             })
 
             r.table(userGroups).run(conn)
@@ -43,18 +48,33 @@ db.setup = () => {
             }, (error) => {
                 r.tableCreate(userGroups).run(conn)
                 .finally(_ => {
-                    r.table(userGroups).indexCreate('user_group_id').run(conn)
+                    r.table(userGroups).indexCreate(
+                        'user_group_id', [r.row('user_id'), r.row('group_id')]
+                    ).run(conn)
                 })
                 .error(error => {
-                    throw error
+                    throw new errors.InternalServerError(error)
                 })
             })
             .error(error => {
-                throw error
+                throw new errors.InternalServerError(error)
+            })
+
+            r.table(messages).run(conn)
+            .then(cursor => {
+                cursor.toArray()
+            }, (error) => {
+                r.tableCreate(messages).run(conn)
+                .finally(_ => {
+                    r.table(messages).indexCreate('user_id').run(conn)
+                })
+                .error(error => {
+                    throw new errors.InternalServerError(error)
+                })
             })
         })
     })
     .error(error => {
-        throw error
+        throw new errors.InternalServerError(error)
     })
 }

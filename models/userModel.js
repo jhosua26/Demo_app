@@ -1,4 +1,4 @@
-var model = module.exports;
+let model = module.exports;
 let r = require('rethinkdb');
 let config = require('../config');
 
@@ -83,6 +83,19 @@ model.deleteUser = (id, callback) => {
     r.connect(config.rethinkdb).then((conn) => {
         r.table('users').get(id).delete().run(conn).then((result) => {
             callback(result)
+        })
+    })
+}
+
+// testing only
+model.getUserId = (callback) => {
+    r.connect(config.rethinkdb).then((conn) => {
+        r.table('users').pluck('id').run(conn).then((cursor) => {
+            cursor.toArray()
+            .then(result => callback(result)
+            , error => {
+                throw error
+            })
         })
     })
 }

@@ -1,4 +1,4 @@
-const model = require('../models/group');
+const model = require('../models/groupModel');
 
 module.exports = (server) => {
 
