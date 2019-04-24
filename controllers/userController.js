@@ -115,4 +115,6 @@ module.exports = (server) => {
             res.send(user)
         })
     })
+
+    // server.get('/')
 };
