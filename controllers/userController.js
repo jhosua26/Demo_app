@@ -103,13 +103,18 @@ module.exports = (server) => {
         })
     })
 
-    server.get('/user/:user_id', async(req, res) => {
+    server.get('/users/:user_id', async(req, res) => {
         await r.connect(config.rethinkdb).then(async(conn) => {
             let user = await r.table('messages').getAll(req.params.user_id, { index: 'receiver_id' })
+            .merge(e => {
+                return r.table('users').get(e('sender_id'))
+            })
             .coerceTo('array')
             .run(conn)
 
             res.send(user)
         })
     })
+
+    // server.get('/')
 };
