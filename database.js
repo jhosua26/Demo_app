@@ -47,14 +47,6 @@ db.setup = () => {
                 cursor.toArray()
             }, (error) => {
                 r.tableCreate(userGroups).run(conn)
-                .finally(_ => {
-                    r.table(userGroups).indexCreate(
-                        'user_group_id', [r.row('user_id'), r.row('group_id')]
-                    ).run(conn)
-                })
-                .error(error => {
-                    throw new errors.InternalServerError(error)
-                })
             })
             .error(error => {
                 throw new errors.InternalServerError(error)
