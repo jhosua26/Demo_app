@@ -97,16 +97,3 @@ model.deleteUser = (id, callback) => {
         })
     })
 }
-
-// testing only
-model.getUserId = (callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('users').pluck('id').run(conn).then((cursor) => {
-            cursor.toArray()
-            .then(result => callback(result)
-            , error => {
-                throw error
-            })
-        })
-    })
-}
