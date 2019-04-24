@@ -1,4 +1,11 @@
-const model = require('../models/userModel');
+/**
+ * Models
+ */
+const userModel = require('../models/userModel');
+
+/**
+ * 
+ */
 const r = require('rethinkdb');
 let config = require('../config');
 const errors = require('restify-errors');
@@ -31,9 +38,11 @@ module.exports = (server) => {
                     email:req.body.email,
                     password:req.body.password
                 };
-                model.saveUser(user, (success, result) => {
+                userModel.saveUser(user, (success, result) => {
                     if(success) {
-                        res.json(success)
+                        res.json({
+                            status: 'Ok'
+                        })
                     } else {
                         res.json({
                             status: 'Error'
@@ -44,16 +53,37 @@ module.exports = (server) => {
         })
     })
 
-    server.get('/user', (req, res) => {
-        model.getUsers((result) => {
+    server.get('/users', (req, res) => {
+        userModel.getUsers((result) => {
             res.send(result)
         })
     })
 
-    server.get('/user/:user_id', (req, res) => {
-        model.getUser(req.params.user_id, (result) => {
-            res.send(result)
-        })
+    server.get('/user/:user_id', async(req, res) => {
+        // await r.connect(config.rethinkdb).then(async(conn) => {
+        //     let user = await r.table('userGroups').eqJoin('user_id', r.table('users')).zip()
+        //     .eqJoin('group_id', r.table('groups')).zip()
+        //     .coerceTo('array').run(conn)
+        //     res.send(user)
+        // })
+
+        // userModel.getUser(req.params.user_id, (result) => {
+        //     console.log(result.id)
+        //     res.send(result)
+        // })
+
+        // const { params : { group_id, user_id } } = req
+        // await r.connect(config.rethinkdb).then(async(conn) => {
+        //     let user = await r.table('users')
+        //     .get(user_id)
+        //     .merge((e) => {
+        //         return {
+        //             groups: r.table('userGroups').getAll(e('id'), { index: 'user_id' }).coerceTo('array')
+        //         }
+        //     })
+        //     .run(conn)
+        //     res.send(user)
+        // })
     })
 
     server.put('/user/:user_id', (req, res) => {
@@ -62,14 +92,24 @@ module.exports = (server) => {
             email: req.body.email,
             password: req.body.password
         }
-        model.updateUser(user, req.params.user_id, (result) => {
+        userModel.updateUser(user, req.params.user_id, (result) => {
             res.send(result)
         })
     })
 
     server.del('/user/:user_id', (req, res) => {
-        model.deleteUser(req.params.user_id, (result) => {
+        userModel.deleteUser(req.params.user_id, (result) => {
             res.send(result)
+        })
+    })
+
+    server.get('/user/:user_id', async(req, res) => {
+        await r.connect(config.rethinkdb).then(async(conn) => {
+            let user = await r.table('messages').getAll(req.params.user_id, { index: 'receiver_id' })
+            .coerceTo('array')
+            .run(conn)
+
+            res.send(user)
         })
     })
 };

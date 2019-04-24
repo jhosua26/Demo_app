@@ -11,7 +11,9 @@ module.exports = (server) => {
             //     status: 'Error'
             // })
             if(success) {
-                res.json(success)
+                res.json({
+                    status: 'Ok'
+                })
             } else {
                 res.json({
                     status: 'Error'

@@ -16,9 +16,11 @@ module.exports = (server) => {
             user_id: req.body.userId,
             group_id: req.body.groupId,
         }
-        model.saveUserGroup(userGroupId, (success, error) => {
+        userGroupModel.saveUserGroup(userGroupId, (success, error) => {
             if(success) {
-                res.json(success)
+                res.json({
+                    status: 'Ok'
+                })
                 
             } else {
                 return next(

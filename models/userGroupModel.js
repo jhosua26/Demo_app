@@ -22,24 +22,19 @@ model.saveUserGroup = (document, callback) => {
     })
 }
 
-// model.getUserAndGroups = (callback) => {
-//     r.connect(config.rethinkdb).then((conn) => {
-//         r.table("userGroups").eqJoin("user_id", r.table("users")).zip().
-//         eqJoin("group_id", r.table("groups")).zip().run(conn).then((cursor) => {
-//             cursor.toArray()
-//             .then(result => callback(result)
-//             , error => {
-//                 throw error
-//             })
-//         }).error((error) => {
-//             throw error
-//         })
-//     })
-//     .error((error) => {
-//         throw error
-//     })
-// }
+model.getUserGroup = (callback) => {
+    r.connect(config.rethinkdb).then((conn) => {
+        r.table('userGroups')
+    })
+    .error((error) => {
+        callback(false, error)
+    })
+}
 
+/**
+ * Insert Messages
+ * @param {result, error} callback 
+ */
 model.getUserAndGroups = (callback) => {
     r.connect(config.rethinkdb).then((conn) => {
         r.table('userGroups').run(conn).then((cursor) => {

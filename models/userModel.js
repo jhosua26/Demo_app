@@ -7,9 +7,9 @@ let config = require('../config');
  * @param {user document} user 
  * @param {response & error} callback 
  */
-model.saveUser = (user, callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('users').insert(user).run(conn).then((results) => {
+model.saveUser = async(user, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('users').insert(user).run(conn).then((results) => {
             callback(results);
         }).error((error) => {
             callback(error);
@@ -23,9 +23,9 @@ model.saveUser = (user, callback) => {
  * Get All User
  * @param {response & error} callback 
  */
-model.getUsers = (callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('users').run(conn).then((cursor) => {
+model.getUsers = async(callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('users').run(conn).then((cursor) => {
             cursor.toArray()
             .then(result => callback(result)
             , error => {
@@ -45,14 +45,25 @@ model.getUsers = (callback) => {
  * @param {ID of the user} id 
  * @param {response, error} callback 
  */
-model.getUser = (id, callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('users').get(id).run(conn).then((cursor) => {
+model.getUser = async(id, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('users').get(id).run(conn).then((cursor) => {
             callback(cursor)
         })
     })
     .error((error) => {
         throw error
+    })
+}
+
+model.getUserWithMessage = async(id, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('users').get(id).run(conn).then((cursor) => {
+            callback(cursor)
+        })
+    })
+    .error((error) => {
+        callback(error)
     })
 }
 
@@ -62,9 +73,9 @@ model.getUser = (id, callback) => {
  * @param {ID of the user} id 
  * @param {response, error} callback 
  */
-model.updateUser = (user, id, callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('users').get(id).update(user).run(conn).then((result) => {
+model.updateUser = async(user, id, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('users').get(id).update(user).run(conn).then((result) => {
             callback(result)
         }).error((error) => {
             callback(error)

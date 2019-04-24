@@ -21,3 +21,15 @@ model.saveMessage = (document, callback) => {
         callback(false, error)
     })
 }
+
+model.getMessage = (id, callback) => {
+    r.connect(config.rethinkdb).then((conn) => {
+        r.table('messages').get(id).run(conn).then((result) => {
+            callback(result)
+        }).error((error) => {
+            callback(error)
+        })
+    }).error((error) => {
+        callback(error)
+    })
+}
