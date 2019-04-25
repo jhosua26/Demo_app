@@ -7,7 +7,7 @@ let config = require('../config');
 
 /**
  * Insert User ID & Group ID
- * @param {FK's from user_id&group_id} document 
+ * @param {FK's of user_id&group_id} document 
  * @param {response, error} callback 
  */
 model.saveUserGroup = (document, callback) => {
@@ -22,7 +22,7 @@ model.saveUserGroup = (document, callback) => {
     })
 }
 
-model.getUserGroup = (callback) => {
+model.getUserGroups = (callback) => {
     r.connect(config.rethinkdb).then((conn) => {
         r.table('userGroups')
     })

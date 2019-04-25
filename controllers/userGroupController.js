@@ -12,16 +12,12 @@ module.exports = (server) => {
 				new errors.InvalidContentError("Expects 'application/json'"),
 			);
         }
-        let userGroupId = {
-            user_id: req.body.userId,
-            group_id: req.body.groupId,
-        }
-        userGroupModel.saveUserGroup(userGroupId, (success, error) => {
+        let { body } = req
+        userGroupModel.saveUserGroup(body, (success, error) => {
             if(success) {
                 res.json({
                     status: 'Ok'
-                })
-                
+                })    
             } else {
                 return next(
                     new errors.InternalServerError(error)

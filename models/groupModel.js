@@ -1,15 +1,22 @@
-var model = module.exports;
-let r = require('rethinkdb');
+/**
+ * Global variable
+ */
 let config = require('../config');
+let model = module.exports;
+
+/**
+ * Module Dependencies
+ */
+let r = require('rethinkdb');
 
 /**
  * Insert Groups
  * @param {group document} group 
- * @param {response & error} callback 
+ * @param {result || error} callback 
  */
-model.saveGroup = (group, callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('groups').insert(group).run(conn).then((results) => {
+model.saveGroup = async(group, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('groups').insert(group).run(conn).then((results) => {
             callback(results);
         }).error((error) => {
             callback(error);
@@ -21,11 +28,11 @@ model.saveGroup = (group, callback) => {
 
 /**
  * Get All Groups
- * @param {response, error} callback 
+ * @param {result || error} callback 
  */
-model.getGroups = (callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('groups').run(conn).then((cursor) => {
+model.getGroups = async(callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('groups').run(conn).then((cursor) => {
             cursor.toArray()
             .then(result => callback(result)
             , error => {
@@ -43,11 +50,11 @@ model.getGroups = (callback) => {
 /**
  * Get Group by ID
  * @param {ID of the group} id 
- * @param {response, error} callback 
+ * @param {result || error} callback 
  */
-model.getGroup = (id, callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('groups').get(id).run(conn).then((cursor) => {
+model.getGroup = async(id, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('groups').get(id).run(conn).then((cursor) => {
             callback(cursor)
         })
     })
@@ -60,11 +67,11 @@ model.getGroup = (id, callback) => {
  * Update Group by ID
  * @param {group document} group 
  * @param {ID of the group} id 
- * @param {response, error} callback 
+ * @param {result || error} callback 
  */
-model.updateGroup = (group, id, callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('groups').get(id).update(group).run(conn).then((result) => {
+model.updateGroup = async(group, id, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('groups').get(id).update(group).run(conn).then((result) => {
             callback(result)
         }).error((error) => {
             callback(error)
@@ -77,11 +84,11 @@ model.updateGroup = (group, id, callback) => {
 /**
  * Delete Group by ID
  * @param {ID of the group} id 
- * @param {response, error} callback 
+ * @param {result || error} callback 
  */
-model.deleteGroup = (id, callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('groups').get(id).delete().run(conn).then((result) => {
+model.deleteGroup = async(id, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('groups').get(id).delete().run(conn).then((result) => {
             callback(result)
         })
     })
