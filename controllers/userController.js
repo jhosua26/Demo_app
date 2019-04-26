@@ -27,47 +27,73 @@ module.exports = (server) => {
 				new errors.InvalidContentError("Expects 'application/json'"),
 			);
         }
-        await r.connect(config.rethinkdb).then(async(conn) => {
-            let [user] = await r.table('users').filter({
-                username: req.body.username
-            }).coerceTo('array').run(conn)
-            if(user) {
-                return next(
-                    new errors.ConflictError('user already exist')
-                )
-            } else {
-                let userInfo = {
-                    ...req.body,
-                    createdAt: new Date().toISOString()
-                }
-                userModel.saveUser(userInfo, (success, result) => {
-                    if(success) {
-                        res.json({
-                            status: 'Ok'
-                        })
-                    } else {
-                        return next(
-                            new errors.InternalServerError(error)
-                        )
-                    }
-                })
-            }
-        })
+        let userInfo = {
+            ...req.body,
+            createdAt: new Date().toISOString()
+        }
+        let conn = await r.connect(config.rethinkdb)
+        let [query] = await r.table('users').filter({
+            username: req.body.username
+        }).coerceTo('array').run(conn)
+
+        if(query) {
+            return next(
+                new errors.ConflictError('user already exist')
+            )
+        } else {
+            let {changes: [{
+                new_val
+            }]} = await r.table('users').insert(userInfo, {
+                returnChanges: true
+            }).run(conn)
+            res.send(new_val)
+            // let [user] = changes.map(result => {
+            //     return result.new_val
+            // })
+            // res.send(user)
+        }
+        // console.log(query)
+        // await r.connect(config.rethinkdb).then(async(conn) => {
+        //     let [user] = await r.table('users').filter({
+        //         username: req.body.username
+        //     }).coerceTo('array').run(conn)
+        //     if(user) {
+        //         return next(
+        //             new errors.ConflictError('user already exist')
+        //         )
+        //     } else {
+        //         let userInfo = {
+        //             ...req.body,
+        //             createdAt: new Date().toISOString()
+        //         }
+        //         let connect = await r.connect(config.rethinkdb).then(async(conn) => {
+        //             return r.table('users').insert(userInfo, {
+        //                 returnChanges: true
+        //             }).run(conn)
+        //         })
+        //         connect.then((result) => {
+        //             let {
+        //                 changes
+        //             } = result
+        //             let [userInfo] = changes.map(result => {
+        //                 return result
+        //             })
+                    
+        //             res.send(userInfo)
+        //         })
+        //     }
+        // })
     })
 
     /**
      * Get All users
      * @return array of objects
      */
-    server.get('/users', (req, res, next) => {
-        userModel.getUsers((result) => {
-            if(result) {
-                res.send(result)
-            } else {
-                return next(
-                    new errors.ConflictError('No User Found')
-                )
-            }
+    server.get('/users', async(req, res, next) => {
+        await r.connect(config.rethinkdb).then(async(conn) => {
+            await r.table('users').run(conn).then((cursor) => {
+                // cursor.
+            })
         })
     })
 

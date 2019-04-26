@@ -86,9 +86,9 @@ model.updateUser = async(user, id, callback) => {
  * @param {ID of the User} id 
  * @param {result || error} callback 
  */
-model.deleteUser = (id, callback) => {
-    r.connect(config.rethinkdb).then((conn) => {
-        r.table('users').get(id).delete().run(conn).then((result) => {
+model.deleteUser = async(id, callback) => {
+    await r.connect(config.rethinkdb).then(async(conn) => {
+        await r.table('users').get(id).delete().run(conn).then((result) => {
             callback(result)
         })
     })
