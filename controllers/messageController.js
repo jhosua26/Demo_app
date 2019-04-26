@@ -8,7 +8,7 @@ const userGroupModel = require('../models/userGroupModel');
  * Modules Dependencies
  */
 const r = require('rethinkdb');
-let config = require('../config');
+const config = require('../config');
 const errors = require('restify-errors');
 
 module.exports = (server) => {
@@ -72,12 +72,6 @@ module.exports = (server) => {
         })
     })
 
-    server.get('/message', (req, res) => {
-        userGroupModel.getUserAndGroups((result) => {
-            res.send(result)
-        })
-    })
-
     // Get all messages received by user
     server.get('/message/:id', async(req, res) => {
         await r.connect(config.rethinkdb).then(async(conn) => {
@@ -100,6 +94,12 @@ module.exports = (server) => {
             .union(
                 r.table('messages').getAll([receiver_id, sender_id], { index: 'ids' })
             )
+            .merge(e => {
+                return {
+                    sender: r.table('users').get(e('sender_id')).pluck('username')
+                }
+            })
+            .without('sender_id')
             .coerceTo('array')
             .run(conn)
             res.send(userToUserMessages)
@@ -108,16 +108,21 @@ module.exports = (server) => {
 
     // Get all Conversation in this group
     server.get('/messages/group/:id', async(req, res, next) => {
-        const { params: { id, user_id } } = req
+        const { params: { id } } = req
         await r.connect(config.rethinkdb).then(async(conn) => {
             let groupMessages = await r.table('groups').get(id)
             .merge(e => {
                 return {
-                    conversations: r.table('messages').getAll(e('id'), { index: 'group_id' }).coerceTo('array')
+                    conversations: r.table('messages').getAll(e('id'), { index: 'group_id' })
+                    .merge(ee => {
+                        return {
+                            sender: r.table('users').get(ee('user_id')).pluck('username')
+                        }
+                    })
+                    .coerceTo('array')
                 }
             })
             .run(conn)
-            console.log(groupMessages, 'mess')
             res.send(groupMessages)
         })
     })
