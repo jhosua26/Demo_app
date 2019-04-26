@@ -88,7 +88,7 @@ model.updateGroup = async(group, id, callback) => {
  */
 model.deleteGroup = async(id, callback) => {
     await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('groups').get(id).delete().run(conn).then((result) => {
+        await r.table('groups').get(id).delete({returnChanges: true}).run(conn).then((result) => {
             callback(result)
         })
     })

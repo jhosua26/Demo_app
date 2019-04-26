@@ -116,12 +116,23 @@ module.exports = (server) => {
      * @return success or failure message
      * ON DELETE CASCADE
      */
-    server.del('/group/:group_id', (req, res, next) => {
-        model.deleteGroup(req.params.group_id, (result) => {
+    server.del('/group/:group_id', async(req, res, next) => {
+        model.deleteGroup(req.params.group_id, async(result) => {
             if(result) {
+                let {
+                    changes
+                } = result
+                let [groupId] = changes.map(id => {
+                    return id.old_val.id
+                })
+                await r.connect(config.rethinkdb).then(async(conn) => {
+                    await r.table('userGroups').getAll(groupId, { index: 'group_id' }).delete().run(conn)
+                    await r.table('messages').getAll(groupId, { index: 'group_id' }).delete().run(conn)
+                })
                 res.json({
                     status: 'Ok'
                 })
+                // res.json(result)
             } else {
                 return next(
                     new errors.InternalServerError(error)
