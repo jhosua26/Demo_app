@@ -14,7 +14,9 @@ let users = 'users';
 db.setup = () => {
     console.log('setting up rethinkdb')
 
+    let connection = null
     r.connect(config.rethinkdb).then(conn => {
+        exports.conn = connection = conn
         r.dbCreate(config.rethinkdb.db).run(conn).then(result => {
             console.log('database created')
         })
@@ -57,12 +59,9 @@ db.setup = () => {
                 cursor.toArray()
             }, (error) => {
                 r.tableCreate(messages).run(conn)
-                .finally(_ => {
-                    r.table(messages).indexCreate('user_id').run(conn)
-                })
-                .error(error => {
-                    throw new errors.InternalServerError(error)
-                })
+            })
+            .error(error => {
+                throw new errors.InternalServerError(error)
             })
         })
     })

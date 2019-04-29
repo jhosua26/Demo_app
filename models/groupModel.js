@@ -1,7 +1,7 @@
 /**
  * Global variable
  */
-let config = require('../config');
+const db = require('../database')
 let model = module.exports;
 
 /**
@@ -12,84 +12,62 @@ let r = require('rethinkdb');
 /**
  * Insert Groups
  * @param {group document} group 
- * @param {result || error} callback 
  */
-model.saveGroup = async(group, callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('groups').insert(group).run(conn).then((results) => {
-            callback(results);
-        }).error((error) => {
-            callback(error);
-        });
-    }).error((error) => {
-        callback(false, error);
-    });
+model.saveGroup = (group) => {
+    return r.table('groups').insert(group, {
+        returnChanges: true
+    }).run(db.conn)
 }
 
 /**
  * Get All Groups
- * @param {result || error} callback 
  */
-model.getGroups = async(callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('groups').run(conn).then((cursor) => {
-            cursor.toArray()
-            .then(result => callback(result)
-            , error => {
-                throw error
-            })
-        }).error((error) => {
-            throw error
-        });
-    })
-    .error((error) => {
-        throw error
-    })
+model.getGroups = () => {
+    return r.table('groups').coerceTo('array').run(db.conn)
 }
 
 /**
  * Get Group by ID
  * @param {ID of the group} id 
- * @param {result || error} callback 
  */
-model.getGroup = async(id, callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('groups').get(id).run(conn).then((cursor) => {
-            callback(cursor)
-        })
-    })
-    .error((error) => {
-        throw error
-    })
+model.getGroup = (id) => {
+    return r.table('groups').get(id).coerceTo('object').run(db.conn)
+}
+
+/**
+ * Get All User in Group
+ * @param {Group Id} id 
+ */
+model.getUsersInGroup = (id) => {
+    return r.table('groups').get(id)
+    .merge((e) => {
+        return {
+            participants: r.table('userGroups').getAll(e('id'), { index: 'group_id' }).without('group_id', 'id')
+            .merge(ee => {
+                return r.table('users').get(ee('user_id')).pluck('username', 'user_id')
+                
+            }).coerceTo('array')
+        } 
+    }).run(db.conn)
 }
 
 /**
  * Update Group by ID
  * @param {group document} group 
  * @param {ID of the group} id 
- * @param {result || error} callback 
  */
-model.updateGroup = async(group, id, callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('groups').get(id).update(group).run(conn).then((result) => {
-            callback(result)
-        }).error((error) => {
-            callback(error)
-        })
-    }).error((error) => {
-        callback(error)
-    })
+model.updateGroup = (group, id) => {
+    return r.table('groups').get(id).update(group, {
+        returnChanges: true
+    }).run(db.conn)
 }
 
 /**
  * Delete Group by ID
- * @param {ID of the group} id 
- * @param {result || error} callback 
+ * @param {ID of the group} id
  */
-model.deleteGroup = async(id, callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('groups').get(id).delete({returnChanges: true}).run(conn).then((result) => {
-            callback(result)
-        })
-    })
+model.deleteGroup = (id) => {
+    return r.table('groups').get(id).delete({
+        returnChanges: true
+    }).run(db.conn)
 }

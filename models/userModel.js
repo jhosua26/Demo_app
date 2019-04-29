@@ -1,7 +1,7 @@
 /**
  * Global variables
  */
-let config = require('../config');
+const db = require('../database')
 let model = module.exports;
 
 /**
@@ -12,84 +12,59 @@ let r = require('rethinkdb');
 /**
  * Insert User
  * @param {user document} user 
- * @param {result || error} callback 
  */
-model.saveUser = async(user, callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('users').insert(user).run(conn).then((results) => {
-            callback(results);
-        }).error((error) => {
-            callback(error);
-        });
-    }).error((error) => {
-        callback(false, error);
-    });
+model.saveUser = (user) => {
+    return r.table('users').insert(user, {
+        returnChanges: true
+    }).run(db.conn)
 }
 
 /**
  * Get All User
- * @param {result || error} callback 
  */
-model.getUsers = async(callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('users').run(conn).then((cursor) => {
-            cursor.toArray()
-            .then(result => callback(result)
-            , error => {
-                throw error
-            })
-        }).error((error) => {
-            throw error
-        });
-    })
-    .error((error) => {
-        throw error
-    })
+model.getUsers = () => {
+    return r.table('users').coerceTo('array').run(db.conn)
 }
 
 /**
  * Get User by ID
  * @param {ID of the user} id 
- * @param {result || error} callback 
  */
-model.getUser = async(id, callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('users').get(id).run(conn).then((cursor) => {
-            callback(cursor)
-        })
+model.getUser = (id) => {
+    return r.table('users').get(id).coerceTo('object').run(db.conn)
+}
+
+/**
+ * Get all the message recieve by the user
+ * @param {ID of the receiver} id 
+ */
+model.getMessageReceiveByUser = (id) => {
+    return r.table('messages').getAll(id, { index: 'receiver_id' })
+    .merge(e => {
+        return r.table('users').get(e('sender_id'))
     })
-    .error((error) => {
-        throw error
-    })
+    .pluck('body', 'sender_id', 'username')
+    .coerceTo('array')
+    .run(db.conn)
 }
 
 /**
  * Modify All Document of the User
  * @param {document from the client} user 
  * @param {ID of the user} id 
- * @param {result || error} callback 
  */
-model.updateUser = async(user, id, callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('users').get(id).update(user).run(conn).then((result) => {
-            callback(result)
-        }).error((error) => {
-            callback(error)
-        })
-    }).error((error) => {
-        callback(error)
-    })
+model.updateUser = (user, id) => {
+    return r.table('users').get(id).update(user, {
+        returnChanges: true
+    }).run(db.conn)
 }
 
 /**
  * Delete User by ID
  * @param {ID of the User} id 
- * @param {result || error} callback 
  */
-model.deleteUser = async(id, callback) => {
-    await r.connect(config.rethinkdb).then(async(conn) => {
-        await r.table('users').get(id).delete().run(conn).then((result) => {
-            callback(result)
-        })
-    })
+model.deleteUser = (id) => {
+    return r.table('users').get(id).delete({
+        returnChanges: true
+    }).run(db.conn)
 }

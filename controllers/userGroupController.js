@@ -41,29 +41,14 @@ module.exports = (server) => {
                     new errors.ConflictError('user is already exist in this group')
                 )
             } else {
-                userGroupModel.saveUserGroup(body, (success, error) => {
-                    if(success) {
-                        res.json({
-                            status: 'Ok'
-                        })    
-                    } else {
-                        return next(
-                            new errors.InternalServerError(error)
-                        )
-                    }
+                userGroupModel.saveUserGroup(body).then(({changes: [{new_val}]}) => {
+                    res.send(new_val)
                 })
-            }
-        })
-    })
-
-    server.get('/userGroup/:group_id', async(req, res, next) => {
-        userGroupModel.getUserAndGroups(req.params.group_id, (result) => {
-            if(result) {
-                res.send(result)
-            } else {
-                return next(
-                    new errors.InternalServerError(error)
-                ) 
+                .catch(error => {
+                    return next(
+                        new errors.InternalServerError(error)
+                    ) 
+                })
             }
         })
     })
