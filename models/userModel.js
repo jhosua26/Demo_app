@@ -35,20 +35,6 @@ model.getUser = (id) => {
 }
 
 /**
- * Get all the message recieve by the user
- * @param {ID of the receiver} id 
- */
-model.getMessageReceiveByUser = (id) => {
-    return r.table('messages').getAll(id, { index: 'receiver_id' })
-    .merge(e => {
-        return r.table('users').get(e('sender_id'))
-    })
-    .pluck('body', 'sender_id', 'username')
-    .coerceTo('array')
-    .run(db.conn)
-}
-
-/**
  * Modify All Document of the User
  * @param {document from the client} user 
  * @param {ID of the user} id 

@@ -20,10 +20,26 @@ model.saveMessage = (document) => {
 }
 
 /**
+ * Get all the message recieve by the user
+ * @param {ID of the receiver} id 
+ */
+model.getMessageReceiveByUser = async(id) => {
+    await r.table('messages').indexWait('receiver_id').run(db.conn)
+    return r.table('messages').getAll(id, { index: 'receiver_id' })
+    .merge(e => {
+        return r.table('users').get(e('sender_id'))
+    })
+    .pluck('body', 'sender_id', 'username')
+    .coerceTo('array')
+    .run(db.conn)
+}
+
+/**
  * Get All the messages in this Group
  * @param {ID of the Group} id 
  */
-model.getMessagesInGroup = (id) => {
+model.getMessagesInGroup = async(id) => {
+    await r.table('messages').indexWait('group_id').run(db.conn)
     return r.table('groups').get(id)
     .merge(e => {
         return {

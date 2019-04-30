@@ -30,7 +30,7 @@ model.getGroups = () => {
  * Get Group by ID
  * @param {ID of the group} id 
  */
-model.getGroup = (id) => {
+model.getGroupById = (id) => {
     return r.table('groups').get(id).coerceTo('object').run(db.conn)
 }
 
@@ -38,7 +38,8 @@ model.getGroup = (id) => {
  * Get All User in Group
  * @param {Group Id} id 
  */
-model.getUsersInGroup = (id) => {
+model.getUsersInThisGroup = async(id) => {
+    await r.table('userGroups').indexWait('group_id').run(db.conn)
     return r.table('groups').get(id)
     .merge((e) => {
         return {
