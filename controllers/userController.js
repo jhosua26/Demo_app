@@ -12,7 +12,7 @@ const errors = require('restify-errors');
 /**
  * Global variables
  */
-let config = require('../config');
+const db = require('../database')
 
 module.exports = (server) => {
 
@@ -31,58 +31,24 @@ module.exports = (server) => {
             ...req.body,
             createdAt: new Date().toISOString()
         }
-        let conn = await r.connect(config.rethinkdb)
-        let [query] = await r.table('users').filter({
+        let [user] = await r.table('users').filter({
             username: req.body.username
-        }).coerceTo('array').run(conn)
+        }).coerceTo('array').run(db.conn)
 
-        if(query) {
+        if(user) {
             return next(
                 new errors.ConflictError('user already exist')
             )
         } else {
-            let {changes: [{
-                new_val
-            }]} = await r.table('users').insert(userInfo, {
-                returnChanges: true
-            }).run(conn)
-            res.send(new_val)
-            // let [user] = changes.map(result => {
-            //     return result.new_val
-            // })
-            // res.send(user)
+            userModel.saveUser(userInfo).then(({changes: [{new_val}]}) => {
+                res.send(new_val)
+            })
+            .catch(error => {
+                return next(
+                    new errors.InternalServerError(error)
+                )
+            })
         }
-        // console.log(query)
-        // await r.connect(config.rethinkdb).then(async(conn) => {
-        //     let [user] = await r.table('users').filter({
-        //         username: req.body.username
-        //     }).coerceTo('array').run(conn)
-        //     if(user) {
-        //         return next(
-        //             new errors.ConflictError('user already exist')
-        //         )
-        //     } else {
-        //         let userInfo = {
-        //             ...req.body,
-        //             createdAt: new Date().toISOString()
-        //         }
-        //         let connect = await r.connect(config.rethinkdb).then(async(conn) => {
-        //             return r.table('users').insert(userInfo, {
-        //                 returnChanges: true
-        //             }).run(conn)
-        //         })
-        //         connect.then((result) => {
-        //             let {
-        //                 changes
-        //             } = result
-        //             let [userInfo] = changes.map(result => {
-        //                 return result
-        //             })
-                    
-        //             res.send(userInfo)
-        //         })
-        //     }
-        // })
     })
 
     /**
@@ -90,26 +56,28 @@ module.exports = (server) => {
      * @return array of objects
      */
     server.get('/users', async(req, res, next) => {
-        await r.connect(config.rethinkdb).then(async(conn) => {
-            await r.table('users').run(conn).then((cursor) => {
-                // cursor.
-            })
+        userModel.getUsers().then((result) => {
+            res.send(result)
+        })
+        .catch(error => {
+            return next(
+                new errors.InternalServerError(error)
+            )
         })
     })
-
+    
     /**
      * Get User by ID
      * @return object
      */
-    server.get('/user/:user_id', async(req, res, next) => {
-        userModel.getUser(req.params.user_id, (result) => {
-            if(result) {
-                res.send(result)
-            } else {
-                return next(
-                    new errors.ConflictError('No User Found')
-                )
-            }
+    server.get('/users/:user_id', async(req, res, next) => {
+        userModel.getUser(req.params.user_id).then((result) => {
+            res.send(result)
+        })
+        .catch(error => {
+            return next(
+                new errors.InternalServerError(error)
+            )
         })
     })
 
@@ -117,41 +85,47 @@ module.exports = (server) => {
      * Update User Info
      * @return success or failure message
      */
-    server.put('/user/:user_id', (req, res, next) => {
+    server.put('/users/:user_id', async(req, res, next) => {
         if (!req.is('application/json')) {
 			return next(
 				new errors.InvalidContentError("Expects 'application/json'"),
 			);
         }
-        const { body } = req
-        userModel.updateUser(body, req.params.user_id, (result) => {
-            if(result) {
-                res.json({
-                    status: 'Ok'
-                })
-            } else {
+        try{
+            const { body } = req
+            let user = await userModel.updateUser(body, req.params.user_id)
+            let {
+                changes
+            } = user
+            if(!changes.length) {
                 return next(
-                    new errors.InternalServerError(error)
+                    new errors.ConflictError('pls update')
                 )
             }
-        })
+            res.send(changes[0].new_val)
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
+        }
     })
 
     /**
      * Delete User Info
      * @return success or failure message
      */
-    server.del('/user/:user_id', (req, res, next) => {
-        userModel.deleteUser(req.params.user_id, (result) => {
-            if(result) {
-                res.json({
-                    status: 'Ok'
-                })
-            } else {
-                return next(
-                    new errors.InternalServerError(error)
-                )
-            }
+    server.del('/users/:user_id', (req, res, next) => {
+        userModel.deleteUser(req.params.user_id)
+        .then((result) => {
+            let {
+                changes
+            } = result
+            res.send(changes)
+        })
+        .catch(error => {
+            return next(
+                new errors.InternalServerError(error)
+            )
         })
     })
 };

@@ -30,11 +30,11 @@ server.use(restifyPlugins.acceptParser(server.acceptable));
 server.use(restifyPlugins.queryParser({ mapParams: true }));
 server.use(restifyPlugins.fullResponse());
 
-
-db.setup()
-server.listen(config.port, () => {
+db.setup().then(_ => {
+  server.listen(config.port, () => {
     console.log('Server up and listening on port %d', config.port);
-});
+  });
+})
 
 server.on('ConflictError', (req, res, err, cb) => {
 	myMetrics.capture(err);
