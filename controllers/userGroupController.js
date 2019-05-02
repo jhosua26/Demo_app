@@ -27,27 +27,32 @@ module.exports = (server) => {
 				new errors.InvalidContentError("Expects 'application/json'"),
 			);
         }
-        let { body } = req
-        let [userExist] = await r.table('userGroups').filter({
-            user_id: body.user_id,
-            group_id: body.group_id
-        })
-        .coerceTo('array')
-        .run(db.conn)
+        try {
+            let { body } = req
+            if(!body.user_id)
+                return next(new errors.BadRequestError('User ID is required'))
+            if(!body.group_id)
+                return next(new errors.BadRequestError('Group ID is required'))
 
-        if(userExist) {
-            return next(
-                new errors.ConflictError('user is already exist in this group')
-            )
-        } else {
-            userGroupModel.saveUserGroup(body).then(({changes: [{new_val}]}) => {
-                res.send(new_val)
+            let [userExist] = await r.table('userGroups').filter({
+                user_id: body.user_id,
+                group_id: body.group_id
             })
-            .catch(error => {
+            .coerceTo('array')
+            .run(db.conn)
+
+            if(userExist) {
                 return next(
-                    new errors.InternalServerError(error)
-                ) 
-            })
+                    new errors.ConflictError('user is already exist in this group')
+                )
+            } else {
+                let {changes: [{new_val}]} = await userGroupModel.saveUserGroup(body)
+                res.send(new_val)
+            }
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
         }
     })
 }

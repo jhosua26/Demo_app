@@ -35,22 +35,3 @@ db.setup().then(_ => {
     console.log('Server up and listening on port %d', config.port);
   });
 })
-
-server.on('ConflictError', (req, res, err, cb) => {
-	myMetrics.capture(err);
-	return cb();
-});
-
-server.on('InternalServer', (req, res, err, cb) => {
-  err.toString = () => {
-    return 'an internal server error occurred!';
-  };
-  // for any response that is application/json
-  err.toJSON = () => {
-    return {
-      message: 'an internal server error occurred!'
-    }
-  };
-
-  return cb();
-});
