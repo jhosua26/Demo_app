@@ -12,7 +12,7 @@ const errors = require('restify-errors');
 /**
  * Global variables
  */
-let config = require('../config');
+const db = require('../database')
 
 module.exports = (server) => {
 
@@ -21,17 +21,21 @@ module.exports = (server) => {
      * if the group is exist it will throw an error
      * if the content type is not an object format it will throw an error
      */
-    server.post('/group', async(req, res, next) => {
+    server.post('/groups', async(req, res, next) => {
         if (!req.is('application/json')) {
 			return next(
 				new errors.InvalidContentError("Expects 'application/json'"),
 			);
         }
-        await r.connect(config.rethinkdb).then(async(conn) => {
+        
+        try {
+            if(!req.body.name) 
+                return next(new errors.BadRequestError('Name is required'))
+            
             let [group] = await r.table('groups').filter({
                 name: req.body.name
-            }).coerceTo('array').run(conn)
-
+            }).coerceTo('array').run(db.conn)
+    
             if(group) {
                 return next(
                     new errors.ConflictError('group already exist')
@@ -41,74 +45,89 @@ module.exports = (server) => {
                     ...req.body,
                     createdAt: new Date().toISOString()
                 }
-                model.saveGroup(groupInfo, (success, result) => {
-                    if(success) {
-                        res.json({
-                            status: 'Ok'
-                        })
-                    } else {
-                        return next(
-                            new errors.InternalServerError(error)
-                        )
-                    }
-                })
+                let {changes: [{new_val}]} = await model.saveGroup(groupInfo)
+                res.send(new_val)
             }
-        })
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
+        }
     })
 
     /**
      * Get All Groups
      * @return array of object
      */
-    server.get('/group', (req, res, next) => {
-        model.getGroups((result) => {
-            if(result) {
-                res.send(result)
-            } else {
-                return next(
-                    new errors.ConflictError('No Group Found')
-                )
-            }
-        })
+    server.get('/groups', async(req, res, next) => {
+        try {
+           let group = await model.getGroups() 
+           res.send(group)
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            ) 
+        }
     })
 
     /**
      * Get Group by Id
      * @return object
      */
-    server.get('/group/:group_id', (req, res, next) => {
-        model.getGroup(req.params.group_id, (result) => {
-            if(result) {
-                res.send(result)
-            } else {
-                return next(
-                    new errors.ConflictError('No User Found')
-                )
-            }
-        })
+    server.get('/groups/:group_id', async(req, res, next) => {
+        try {
+            let group = await model.getGroupById(req.params.group_id)
+            res.send(group)
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
+        }
+    })
+
+    /**
+     * Get Users in Group
+     * @return object
+     */
+    server.get('/groups/:group_id/users', async(req, res, next) => {
+        try {
+            let group = await model.getUsersInThisGroup(req.params.group_id)
+            res.send(group)
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
+        }
     })
 
     /**
      * Update Group Info
      * @return success or failure message
      */
-    server.put('/group/:group_id', (req, res, next) => {
+    server.put('/groups/:group_id', async(req, res, next) => {
         if (!req.is('application/json')) {
 			return next(
 				new errors.InvalidContentError("Expects 'application/json'"),
 			);
         }
-        model.updateGroup({name: req.body.name}, req.params.group_id, (result) => {
-            if(result) {
-                res.json({
-                    status: 'Ok'
-                })
-            } else {
-                return next(
-                    new errors.InternalServerError(error)
-                )
-            }
-        })
+
+        try {
+            const { body } = req
+
+            if(!req.body.name) 
+                return next(new errors.BadRequestError('Name is required!'))
+            
+            let group = await model.updateGroup(body, req.params.group_id)
+
+            if(group.replaced === 0 && group.unchanged === 1)
+                return next(new errors.BadRequestError('Please update group name!'))
+            else
+                res.send(body)
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
+        }
     })
 
     /**
@@ -116,28 +135,53 @@ module.exports = (server) => {
      * @return success or failure message
      * ON DELETE CASCADE
      */
-    server.del('/group/:group_id', async(req, res, next) => {
-        model.deleteGroup(req.params.group_id, async(result) => {
-            if(result) {
-                let {
-                    changes
-                } = result
-                let [groupId] = changes.map(id => {
-                    return id.old_val.id
-                })
-                await r.connect(config.rethinkdb).then(async(conn) => {
-                    await r.table('userGroups').getAll(groupId, { index: 'group_id' }).delete().run(conn)
-                    await r.table('messages').getAll(groupId, { index: 'group_id' }).delete().run(conn)
-                })
-                res.json({
-                    status: 'Ok'
-                })
-                // res.json(result)
+    server.del('/groups/:group_id', async(req, res, next) => {
+        try {
+            let {changes} = await model.deleteGroup(req.params.group_id)
+
+            let [{old_val: {id}}] = changes
+            await r.table('userGroups').getAll(id, { index: 'group_id' }).delete().run(db.conn)
+            await r.table('messages').getAll(id, { index: 'group_id' }).delete().run(db.conn)
+
+            res.send(changes)
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
+        }
+    })
+
+    /**
+     * Search Filter
+     * @param username, email
+     * @return Object 
+     */
+    server.get('/groups/:id/user', async(req, res, next) => {
+        try {
+            let username = req.params.username
+            let email = req.params.email
+            let [userExist] = await r.table('userGroups').getAll(req.params.id, { index: 'group_id' })
+            .merge((users) => {
+                return {
+                    user: r.table('users').get(users('user_id'))
+                }
+            })
+            .filter(function(user) {
+                return user('user')('username').default('Anonymous').match(username)
+                .or(user('user')('email').default('Anonymous').match(email))
+            })
+            .coerceTo('array')
+            .run(db.conn)
+
+            if(!userExist) {
+                return next(new errors.BadRequestError('No user found!'))
             } else {
-                return next(
-                    new errors.InternalServerError(error)
-                )
+                res.send(userExist)
             }
-        })
+        } catch (error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
+        }
     })
 };
