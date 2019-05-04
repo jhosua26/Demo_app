@@ -27,28 +27,36 @@ module.exports = (server) => {
 				new errors.InvalidContentError("Expects 'application/json'"),
 			);
         }
-        let userInfo = {
-            ...req.body,
-            createdAt: new Date().toISOString()
-        }
-        let [user] = await r.table('users').filter({
-            username: req.body.username
-        }).coerceTo('array').run(db.conn)
+        try {
+            if (!req.body.email) 
+                return next(new errors.BadRequestError('Email is required!'))
+            if (!req.body.username) 
+                return next(new errors.BadRequestError('Username is required!'))
+            if (!req.body.password) 
+                return next(new errors.BadRequestError('Password is required!'))
 
-        if(user) {
-            return next(
-                new errors.ConflictError('user already exist')
-            )
-        } else {
-            userModel.saveUser(userInfo).then(({changes: [{new_val}]}) => {
-                res.send(new_val)
-            })
-            .catch(error => {
+            let userInfo = {
+                ...req.body,
+                createdAt: new Date().toISOString()
+            }
+            let [userExist] = await r.table('users').filter({
+                username: req.body.username
+            }).coerceTo('array').run(db.conn)
+            
+            if(userExist) {
                 return next(
-                    new errors.InternalServerError(error)
+                    new errors.ConflictError('user already exist')
                 )
-            })
+            } else {
+                let {changes: [{new_val}]} = await userModel.saveUser(userInfo)
+                res.send(new_val)
+            }
+        } catch(error) {
+            return next(
+                new errors.InternalServerError(error)
+            )
         }
+        
     })
 
     /**
@@ -56,14 +64,14 @@ module.exports = (server) => {
      * @return array of objects
      */
     server.get('/users', async(req, res, next) => {
-        userModel.getUsers().then((result) => {
+        try {
+            let result = await userModel.getUsers()
             res.send(result)
-        })
-        .catch(error => {
+        } catch(error) {
             return next(
                 new errors.InternalServerError(error)
             )
-        })
+        }
     })
     
     /**
@@ -71,14 +79,14 @@ module.exports = (server) => {
      * @return object
      */
     server.get('/users/:user_id', async(req, res, next) => {
-        userModel.getUser(req.params.user_id).then((result) => {
+        try {
+            let result = await userModel.getUser(req.params.user_id)
             res.send(result)
-        })
-        .catch(error => {
+        } catch(error) {
             return next(
                 new errors.InternalServerError(error)
             )
-        })
+        }
     })
 
     /**
@@ -89,20 +97,27 @@ module.exports = (server) => {
         if (!req.is('application/json')) {
 			return next(
 				new errors.InvalidContentError("Expects 'application/json'"),
-			);
+			)
         }
         try{
             const { body } = req
+
+            if(!body.username)
+                return next(new errors.BadRequestError('Username is required!'))
+            if(!body.email)
+                return next(new errors.BadRequestError('Email is required!'))
+            if(!body.password)
+                return next(new errors.BadRequestError('Password is required!'))
+
             let user = await userModel.updateUser(body, req.params.user_id)
-            let {
-                changes
-            } = user
-            if(!changes.length) {
+
+            if(user.replaced !== 1 && user.unchanged === 1) 
                 return next(
-                    new errors.ConflictError('pls update')
+                    new errors.BadRequestError('Please Update User Info')
                 )
-            }
-            res.send(changes[0].new_val)
+            else 
+                res.send(body)                
+            
         } catch(error) {
             return next(
                 new errors.InternalServerError(error)
@@ -114,18 +129,20 @@ module.exports = (server) => {
      * Delete User Info
      * @return success or failure message
      */
-    server.del('/users/:user_id', (req, res, next) => {
-        userModel.deleteUser(req.params.user_id)
-        .then((result) => {
+    server.del('/users/:user_id', async(req, res, next) => {
+        try {
+            let user = await userModel.deleteUser(req.params.user_id)
+            if(user.deleted === 0 && user.unchanged === 0) 
+                return next(new errors.BadRequestError('Please check you id params!'))
+
             let {
                 changes
-            } = result
-            res.send(changes)
-        })
-        .catch(error => {
+            } = user
+            res.send(user)
+        } catch(error) {
             return next(
                 new errors.InternalServerError(error)
             )
-        })
+        }
     })
 };
