@@ -13,6 +13,16 @@ const errors = require('restify-errors');
  * Global variables
  */
 const db = require('../database')
+const errorResponse = (obj, next) => {
+    const { user_id, group_id } = obj
+    
+    if(!user_id || !group_id) {
+        result = (!user_id && 'User ID') || (!group_id && 'Group ID')
+        return next(new errors.BadRequestError(`${result} is required`))
+    } else {
+        return true
+    }
+}
 
 module.exports = (server) => {
 
@@ -21,7 +31,7 @@ module.exports = (server) => {
      * if the user exist in this group will throw an error
      * if the content type is not a json format, then it will throw an error
      */
-    server.post('/usergroup', async(req, res, next) => {
+    server.post('/user-groups', async(req, res, next) => {
         if (!req.is('application/json')) {
 			return next(
 				new errors.InvalidContentError("Expects 'application/json'"),
@@ -29,10 +39,8 @@ module.exports = (server) => {
         }
         try {
             let { body } = req
-            if(!body.user_id)
-                return next(new errors.BadRequestError('User ID is required'))
-            if(!body.group_id)
-                return next(new errors.BadRequestError('Group ID is required'))
+            
+            errorResponse(body, next)
 
             let [userExist] = await r.table('userGroups').filter({
                 user_id: body.user_id,

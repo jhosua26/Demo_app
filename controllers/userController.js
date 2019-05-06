@@ -10,9 +10,32 @@ const r = require('rethinkdb');
 const errors = require('restify-errors');
 
 /**
- * Global variables
+ * Global variables/functions
  */
 const db = require('../database')
+const errorResponse = (obj, next) => {
+    const { username, email, password } = obj
+
+    // let type
+
+    // if(!username) {
+    //     type = 'username'
+    // } else if(!email) {
+    //     type = 'email'
+    // } else if(!password) {
+    //     type = 'password'
+    // }
+    // if(type) {
+    //     return next(new errors.BadRequestError(`${type} is required`))
+    // }
+    
+    if(!username || !email || !password) {
+        result = (!username && 'Username') || (!email && 'Email') || (!password && 'Password')
+        return next(new errors.BadRequestError(`${result} is required`))
+    } else {
+        return true
+    }
+}
 
 module.exports = (server) => {
 
@@ -21,19 +44,16 @@ module.exports = (server) => {
      * if the user is exist it will throw an error
      * if the content type is not a json format, then it will throw an error
      */
-    server.post('/user',  async(req, res, next) => {
+    server.post('/users',  async(req, res, next) => {
         if (!req.is('application/json')) {
 			return next(
 				new errors.InvalidContentError("Expects 'application/json'"),
 			);
         }
         try {
-            if (!req.body.email) 
-                return next(new errors.BadRequestError('Email is required!'))
-            if (!req.body.username) 
-                return next(new errors.BadRequestError('Username is required!'))
-            if (!req.body.password) 
-                return next(new errors.BadRequestError('Password is required!'))
+            const { body } = req
+
+            errorResponse(body, next)
 
             let userInfo = {
                 ...req.body,
@@ -101,13 +121,8 @@ module.exports = (server) => {
         }
         try{
             const { body } = req
-
-            if(!body.username)
-                return next(new errors.BadRequestError('Username is required!'))
-            if(!body.email)
-                return next(new errors.BadRequestError('Email is required!'))
-            if(!body.password)
-                return next(new errors.BadRequestError('Password is required!'))
+            
+            errorResponse(body, next)
 
             let user = await userModel.updateUser(body, req.params.user_id)
 
