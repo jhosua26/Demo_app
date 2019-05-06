@@ -22,7 +22,7 @@ module.exports = (server) => {
      * if the client trying to send an none Json format it will throw an error
      * if the Non-member User trying to send message in this group it will throw an error
      */
-    server.post('/message', async(req, res, next) => {
+    server.post('/messages', async(req, res, next) => {
         if (!req.is('application/json')) {
 			return next(
 				new errors.InvalidContentError("Expects 'application/json'"),
@@ -43,6 +43,7 @@ module.exports = (server) => {
                     user: r.table('users').get(userGroup('user_id'))
                 }
             }).coerceTo('array').run(db.conn)
+            console.log(user, 'dri')
             if(!user) {
                 return next(
                     new errors.ConflictError('this user is not exist in this group')
@@ -61,7 +62,7 @@ module.exports = (server) => {
     /**
      * Insert Message to User
      */
-    server.post('/messages',  async(req, res, next) => {
+    server.post('/message',  async(req, res, next) => {
         if (!req.is('application/json')) {
 			return next(
 				new errors.InvalidContentError("Expects 'application/json'"),
@@ -87,7 +88,7 @@ module.exports = (server) => {
      * Get all Messages received by User
      * @return array of objects
      */
-    server.get('/message/users/:id', async(req, res, next) => {
+    server.get('/messages/users/:id', async(req, res, next) => {
         try {
             let message = await messageModel.getMessageReceiveByUser(req.params.id)
             res.send(message)
@@ -129,7 +130,7 @@ module.exports = (server) => {
     /**
      * Get all conversation in this Group
      */
-    server.get('/messages/group/:id', async(req, res, next) => {
+    server.get('/messages/groups/:id', async(req, res, next) => {
         try {
             const { params: { id } } = req
             let message = await messageModel.getMessagesInGroup(id)

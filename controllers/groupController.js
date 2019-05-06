@@ -139,46 +139,11 @@ module.exports = (server) => {
         try {
             let {changes} = await model.deleteGroup(req.params.group_id)
 
-            let [{old_val: {id}}] = changes
-            await r.table('userGroups').getAll(id, { index: 'group_id' }).delete().run(db.conn)
-            await r.table('messages').getAll(id, { index: 'group_id' }).delete().run(db.conn)
+            await r.table('userGroups').getAll(req.params.group_id, { index: 'group_id' }).delete().run(db.conn)
+            await r.table('messages').getAll(req.params.group_id, { index: 'group_id' }).delete().run(db.conn)
 
             res.send(changes)
         } catch(error) {
-            return next(
-                new errors.InternalServerError(error)
-            )
-        }
-    })
-
-    /**
-     * Search Filter
-     * @param username, email
-     * @return Object 
-     */
-    server.get('/groups/:id/user', async(req, res, next) => {
-        try {
-            let username = req.params.username
-            let email = req.params.email
-            let [userExist] = await r.table('userGroups').getAll(req.params.id, { index: 'group_id' })
-            .merge((users) => {
-                return {
-                    user: r.table('users').get(users('user_id'))
-                }
-            })
-            .filter(function(user) {
-                return user('user')('username').default('Anonymous').match(username)
-                .or(user('user')('email').default('Anonymous').match(email))
-            })
-            .coerceTo('array')
-            .run(db.conn)
-
-            if(!userExist) {
-                return next(new errors.BadRequestError('No user found!'))
-            } else {
-                res.send(userExist)
-            }
-        } catch (error) {
             return next(
                 new errors.InternalServerError(error)
             )
