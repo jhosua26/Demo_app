@@ -15,19 +15,6 @@ const errors = require('restify-errors');
 const db = require('../database')
 const errorResponse = (obj, next) => {
     const { username, email, password } = obj
-
-    // let type
-
-    // if(!username) {
-    //     type = 'username'
-    // } else if(!email) {
-    //     type = 'email'
-    // } else if(!password) {
-    //     type = 'password'
-    // }
-    // if(type) {
-    //     return next(new errors.BadRequestError(`${type} is required`))
-    // }
     
     if(!username || !email || !password) {
         result = (!username && 'Username') || (!email && 'Email') || (!password && 'Password')
